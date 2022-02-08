@@ -12,6 +12,7 @@ clap = { version = "3.0.14", features = ["cargo"] }
 fern = { version = "0.6.0", features = ["colored"] }
 fs2 = "0.4.3"
 log = "0.4.14"
+nom = "7.1.0"
 quick-xml = "0.22.0"
 regex = "1.5.4"
 shellexpand = "2.1.0"
