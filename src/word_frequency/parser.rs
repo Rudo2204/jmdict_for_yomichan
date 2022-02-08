@@ -62,6 +62,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn parse_full_input() {
         let raw_freq_sample =
             std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
