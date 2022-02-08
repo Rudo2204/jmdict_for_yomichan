@@ -1,0 +1,3 @@
+[submodule "japanese-word-frequency"]
+	path = japanese-word-frequency
+	url = git@github.com:Rudo2204/japanese-word-frequency.git
