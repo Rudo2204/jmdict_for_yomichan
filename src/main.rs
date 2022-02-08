@@ -8,9 +8,8 @@ use std::io::stdout;
 use std::path::PathBuf;
 use time::format_description::well_known::Rfc3339;
 
-mod frequency_parser;
-mod frequency_stats;
 mod jmdict_xml;
+mod word_frequency;
 
 pub const PROGRAM_NAME: &str = "jmdict_for_yomichan";
 
@@ -148,8 +147,8 @@ fn main() -> Result<()> {
     let _ = jmdict_xml::process_jmdict(&jmdict_xml);
     let raw_freq_input = std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
     let (_, vec_word_freq) =
-        frequency_parser::parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
-    let (mean, std_deviation) = frequency_stats::get_freq_stats(&vec_word_freq);
+        word_frequency::parser::parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
+    let (mean, std_deviation) = word_frequency::stats::get_freq_stats(&vec_word_freq);
     info!("mean = {}, std_deviation = {}", mean, std_deviation);
 
     debug!("-----Everything is finished!-----");

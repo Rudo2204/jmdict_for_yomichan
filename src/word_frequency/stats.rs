@@ -1,4 +1,4 @@
-use crate::frequency_parser::WordFrequency;
+use crate::word_frequency::parser::WordFrequency;
 
 fn mean(data: &[f32]) -> Option<f32> {
     let sum = data.iter().sum::<f32>();
