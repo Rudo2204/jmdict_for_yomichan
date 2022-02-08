@@ -10,6 +10,7 @@ use time::format_description::well_known::Rfc3339;
 
 mod jmdict_xml;
 mod word_frequency;
+mod yomichan;
 
 pub const PROGRAM_NAME: &str = "jmdict_for_yomichan";
 
@@ -145,7 +146,8 @@ fn main() -> Result<()> {
     let input_path = matches.value_of("input").unwrap();
     let jmdict_xml = std::fs::read_to_string(input_path)?;
     let _ = jmdict_xml::process_jmdict(&jmdict_xml);
-    let raw_freq_input = std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
+    //let raw_freq_input = std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
+    let raw_freq_input = std::fs::read_to_string("tests/frequency-sample.txt").unwrap();
     let (_, vec_word_freq) =
         word_frequency::parser::parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
     let (mean, std_deviation) = word_frequency::stats::get_freq_stats(&vec_word_freq);
