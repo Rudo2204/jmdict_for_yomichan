@@ -8,6 +8,7 @@ use std::io::stdout;
 use std::path::PathBuf;
 use time::format_description::well_known::Rfc3339;
 
+mod frequency_parser;
 mod jmdict_xml;
 
 pub const PROGRAM_NAME: &str = "jmdict_for_yomichan";
