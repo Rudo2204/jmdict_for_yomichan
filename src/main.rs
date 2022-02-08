@@ -149,7 +149,7 @@ fn main() -> Result<()> {
     let raw_freq_input = std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
     let (_, vec_word_freq) =
         frequency_parser::parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
-    let (mean, std_deviation) = frequency_stats::get_freq_stats(vec_word_freq);
+    let (mean, std_deviation) = frequency_stats::get_freq_stats(&vec_word_freq);
     info!("mean = {}, std_deviation = {}", mean, std_deviation);
 
     debug!("-----Everything is finished!-----");

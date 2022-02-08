@@ -28,7 +28,7 @@ fn std_deviation(data: &[f32]) -> Option<f32> {
     }
 }
 
-pub fn get_freq_stats(vec_word_freq: Vec<WordFrequency>) -> (f32, f32) {
+pub fn get_freq_stats(vec_word_freq: &Vec<WordFrequency>) -> (f32, f32) {
     let data = vec_word_freq
         .iter()
         .map(|x| x.popularity)
