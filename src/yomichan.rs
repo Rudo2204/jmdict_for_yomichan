@@ -7,6 +7,15 @@ pub struct DictIndex {
     sequenced: bool,
 }
 
+impl DictIndex {
+    fn serialize(&self) -> String {
+        format!(
+            r#"{{"title":"{}","format":{},"revision":"{}","sequenced":{}}}"#,
+            self.title, self.format, self.revision, self.sequenced
+        )
+    }
+}
+
 struct Term {
     term: String,
     reading: String,
@@ -83,5 +92,19 @@ mod tests {
         let term = Term {term: "明白".to_string(), reading: "めいはく".to_string(), identifiers: Identifier::Other, popularity: 708f32, definitions: r#"めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."#.to_string(), sequence_number: 26u32};
         let serialized = r#"["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""]"#.to_string();
         assert_eq!(term.serialize(), serialized);
+    }
+
+    #[test]
+    fn serialize_dict_index() {
+        let dict_index = DictIndex {
+            title: "JMdict".to_string(),
+            format: 3u8,
+            revision: "JMdict1".to_string(),
+            sequenced: true,
+        };
+        assert_eq!(
+            dict_index.serialize(),
+            r#"{"title":"JMdict","format":3,"revision":"JMdict1","sequenced":true}"#
+        );
     }
 }
