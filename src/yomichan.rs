@@ -1,5 +1,3 @@
-use crate::word_frequency::parser::WordFrequency;
-
 pub struct DictIndex {
     title: String,
     format: u8,
@@ -55,15 +53,6 @@ impl Identifier {
             Identifier::Godan => "v5",
             Identifier::Other => "",
         }
-    }
-}
-
-// this returns the first (which is also the highest) popularity for an input ent_seq
-// for other terms with the same ent_seq, we will simply reduce this popularity point
-pub fn get_popularity(vec_word_freq: &Vec<WordFrequency>, ent_seq: u32) -> Option<f32> {
-    match vec_word_freq.into_iter().find(|&x| x.ent_seq == ent_seq) {
-        Some(word_freq) => Some(word_freq.popularity),
-        None => None,
     }
 }
 

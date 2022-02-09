@@ -37,3 +37,12 @@ pub fn get_freq_stats(vec_word_freq: &Vec<WordFrequency>) -> (f32, f32) {
     let data_std_deviation = std_deviation(&data).unwrap();
     (data_mean, data_std_deviation)
 }
+
+// this returns the first (which is also the highest) popularity for an input ent_seq
+// for other terms with the same ent_seq, we will simply reduce this popularity point
+pub fn get_popularity(vec_word_freq: &Vec<WordFrequency>, ent_seq: u32) -> Option<f32> {
+    match vec_word_freq.into_iter().find(|&x| x.ent_seq == ent_seq) {
+        Some(word_freq) => Some(word_freq.popularity),
+        None => None,
+    }
+}
