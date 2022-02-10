@@ -1,25 +1,57 @@
+use anyhow::Result;
+use log::debug;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use regex::bytes::Regex;
 
 use std::collections::HashMap;
+use std::fs::OpenOptions;
+use std::io::{BufRead, Write};
+use std::str;
 
-pub fn process_jmdict(xml: &str) -> i32 {
+const MAX_TERM: u16 = 10000;
+
+use crate::yomichan::Definition;
+//use crate::word_frequency::stats::get_popularity;
+
+pub fn process_jmdict(xml: &str) -> Result<()> {
     let mut reader = Reader::from_str(xml);
     reader.trim_text(true);
 
-    let mut count = 0;
-    let mut dtd_count = 0;
-    let mut txt = Vec::new();
+    let mut current_term_count = 0;
     let mut buf = Vec::new();
+    //let mut definition = String::new();
 
-    let entity_re = Regex::new(r#"<!ENTITY\s+([^ \t\r\n]+)\s+"([^"]*)"\s*>"#).unwrap();
+    let entity_re = Regex::new(r#"<!ENTITY\s+([^ \t\r\n]+)\s+"([^"]*)"\s*>"#)?;
     let mut custom_entities = HashMap::new();
+
+    let mut current_term_bank_count: u8 = 1;
+    //let mut current_term_file = OpenOptions::new()
+    //    .create(true)
+    //    .write(true)
+    //    .truncate(true)
+    //    .open(format!("term_bank_{}.json", current_term_bank_count))?;
 
     loop {
         match reader.read_event(&mut buf) {
             Ok(Event::Start(ref e)) => match e.name() {
-                b"ent_seq" => count += 1,
+                b"entry" => {
+                    current_term_count += 1;
+
+                    if current_term_count == MAX_TERM {
+                        //current_term_file.flush()?;
+                        //current_term_file = OpenOptions::new()
+                        //    .create(true)
+                        //    .write(true)
+                        //    .truncate(true)
+                        //    .open(format!("term_bank_{}.json", current_term_bank_count))?;
+
+                        current_term_count = 1;
+                    }
+
+                    let definition = parse_entry(&mut reader, &mut buf, &custom_entities)?;
+                    debug!("{:#?}", definition);
+                }
                 _ => (),
             },
             Ok(Event::DocType(ref e)) => {
@@ -27,13 +59,6 @@ pub fn process_jmdict(xml: &str) -> i32 {
                     custom_entities.insert(cap[1].to_vec(), cap[1].to_vec());
                 }
             }
-            Ok(Event::CData(ref _e)) => dtd_count += 1,
-            // unescape and decode the text event using the reader encoding
-            Ok(Event::Text(e)) => txt.push(
-                e.unescape_and_decode_with_custom_entities(&reader, &custom_entities)
-                    .expect("Could not escape and decode"),
-            ),
-
             Ok(Event::Eof) => break,
             Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
             _ => (),
@@ -41,7 +66,98 @@ pub fn process_jmdict(xml: &str) -> i32 {
 
         buf.clear();
     }
-    println!("count = {}", count);
-    println!("txt = {:#?}", txt);
-    dtd_count
+    //println!("count = {}", count);
+    //println!("txt = {:#?}", txt);
+    Ok(())
+}
+
+fn parse_entry<R: BufRead>(
+    reader: &mut Reader<R>,
+    buf: &mut Vec<u8>,
+    custom_entities: &HashMap<Vec<u8>, Vec<u8>>,
+) -> Result<Definition> {
+    let mut definition = Definition::default();
+    let mut number_of_sense: usize = 0;
+    let mut current_tag = Tag::OtherDontCareAbout;
+
+    loop {
+        match reader.read_event(buf)? {
+            // a tag was opened
+            Event::Start(start) => {
+                current_tag = Tag::from_str(str::from_utf8(start.name())?);
+                if current_tag == Tag::Sense {
+                    number_of_sense += 1;
+                }
+            }
+            Event::Text(text) => {
+                let value =
+                    text.unescape_and_decode_with_custom_entities(&reader, &custom_entities)?;
+                match current_tag {
+                    Tag::Keb => {
+                        definition.add_term(value);
+                    }
+                    Tag::Reb => {
+                        definition.add_reading(value);
+                    }
+                    Tag::Pos => {
+                        definition.add_pos(value, number_of_sense);
+                    }
+                    Tag::Misc => {
+                        match value.as_str() {
+                            "uk" => {
+                                definition.set_uk();
+                            }
+                            _ => (),
+                        };
+
+                        definition.add_misc(value, number_of_sense);
+                    }
+                    Tag::Gloss => {
+                        definition.add_gloss(value, number_of_sense);
+                    }
+                    Tag::Sense => {
+                        number_of_sense += 1;
+                    }
+                    Tag::OtherDontCareAbout => (),
+                }
+            }
+            Event::Empty(_val) => {
+                definition.set_uk();
+            }
+            Event::End(end) => {
+                if end.name() == b"entry" {
+                    break;
+                }
+            }
+            _ => (),
+        }
+    }
+    Ok(definition)
+}
+
+#[derive(PartialEq)]
+enum Tag {
+    //EntSeq,
+    Keb,
+    Reb,
+    Pos,
+    Gloss,
+    Misc,
+    Sense,
+    OtherDontCareAbout,
+}
+
+impl Tag {
+    fn from_str(s: &str) -> Self {
+        match s {
+            //"ent_seq" => Tag::EntSeq,
+            "keb" => Tag::Keb,
+            "reb" => Tag::Reb,
+            "pos" => Tag::Pos,
+            "gloss" => Tag::Gloss,
+            "misc" => Tag::Misc,
+            "sense" => Tag::Sense,
+            _ => Tag::OtherDontCareAbout,
+        }
+    }
 }
