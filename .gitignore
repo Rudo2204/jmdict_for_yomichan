@@ -1,2 +1,4 @@
 /target
 /ignore
+*.json
+*.zip
