@@ -12,6 +12,24 @@ impl DictIndex {
             self.title, self.format, self.revision, self.sequenced
         )
     }
+    pub fn default_serialize() -> String {
+        let revision_time_format = time::format_description::parse("[year][month][day]")
+            .expect("Could not parse to YYYYMMDD");
+
+        let revision_date = time::OffsetDateTime::now_local()
+            .expect("Could not get local time")
+            .format(&revision_time_format)
+            .expect("Could not parse to YYYYMMDD");
+
+        let dict_index = DictIndex {
+            title: "JMdict".to_string(),
+            format: 3u8,
+            revision: format!("JMdict-{}", revision_date),
+            sequenced: true,
+        };
+
+        dict_index.serialize()
+    }
 }
 
 struct Term {
