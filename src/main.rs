@@ -3,16 +3,20 @@ use clap::{crate_authors, crate_description, crate_version, App, AppSettings, Ar
 use fern::colors::{Color, ColoredLevelConfig};
 use fs2::FileExt;
 use log::{debug, info, LevelFilter};
+
 use std::fs::OpenOptions;
-use std::io::stdout;
+use std::io::{stdout, Write};
 use std::path::PathBuf;
+
 use time::format_description::well_known::Rfc3339;
 
 mod jmdict_xml;
 mod word_frequency;
 mod yomichan;
 
-pub const PROGRAM_NAME: &str = "jmdict_for_yomichan";
+use yomichan::DictIndex;
+
+const PROGRAM_NAME: &str = "jmdict_for_yomichan";
 
 fn setup_logging(verbosity: u64, chain: bool, log_path: Option<&str>) -> Result<Option<&str>> {
     let colors_line = ColoredLevelConfig::new()
@@ -32,7 +36,7 @@ fn setup_logging(verbosity: u64, chain: bool, log_path: Option<&str>) -> Result<
     };
 
     // For stdout output we will just output local %H:%M:%S
-    let time_cli_format = time::format_description::parse("[hour]:[minute]:[second]").unwrap();
+    let time_cli_format = time::format_description::parse("[hour]:[minute]:[second]")?;
     let stdout_config = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
@@ -142,16 +146,24 @@ fn main() -> Result<()> {
     }
 
     debug!("-----Logger is initialized. Starting main program!-----");
-    info!("This is an info line!");
     let input_path = matches.value_of("input").unwrap();
     let jmdict_xml = std::fs::read_to_string(input_path)?;
     let _ = jmdict_xml::process_jmdict(&jmdict_xml);
     //let raw_freq_input = std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
-    let raw_freq_input = std::fs::read_to_string("tests/frequency-sample.txt").unwrap();
+    let raw_freq_input = std::fs::read_to_string("tests/frequency-sample.txt")?;
     let (_, vec_word_freq) =
         word_frequency::parser::parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
     let (mean, std_deviation) = word_frequency::stats::get_freq_stats(&vec_word_freq);
     info!("mean = {}, std_deviation = {}", mean, std_deviation);
+
+    let mut index_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open("index.json")?;
+
+    write!(index_file, "{}", DictIndex::default_serialize())?;
+    info!("Successfully wrote `index.json` file!");
 
     debug!("-----Everything is finished!-----");
     if lock {
