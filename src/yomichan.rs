@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 pub struct DictIndex {
     title: String,
     format: u8,
@@ -33,43 +35,49 @@ impl DictIndex {
 }
 
 struct Term {
-    term: String,
-    reading: String,
-    //tags: Option<String>,
-    // If noun, return None
-    identifiers: Identifier,
-    popularity: f32,
     definitions: Definition,
+    popularity: f32,
     sequence_number: u32,
-    //extra_tags: Option<String>,
 }
 
-//impl Term {
-//    fn serialize(&self) -> String {
-//        format!(
-//            r#"["{}","{}","","{}",{},["{}"],{},""]"#,
-//            self.term,
-//            self.reading,
-//            self.identifiers.as_str(),
-//            self.popularity,
-//            self.definitions,
-//            self.sequence_number
-//        )
-//    }
-//}
+impl Term {
+    fn serialize(&self) -> String {
+        //["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],
+        let len = self.definitions.term.len();
+        let mut ret = String::new();
+        for i in 0..len {
+            write!(
+                ret,
+                r#"["{}","{}","","{}",{},["{}"],{},""]"#,
+                self.definitions.term[i],
+                self.definitions.reading[i],
+                self.definitions.pos_to_identifier(),
+                self.popularity,
+                self.definitions.serialize_gloss(i),
+                self.sequence_number
+            )
+            .expect("Could not write to buffer string to serialize definitions");
+            //if i < len {
+            //    writeln!(ret, ",\n")
+            //        .expect("Could not write to buffer string to serialize definitions");
+            //}
+        }
+        ret
+    }
+}
 
 enum Identifier {
     Ichidan,
     Godan,
-    Other,
 }
 
 impl Identifier {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Identifier::Ichidan => "v1",
-            Identifier::Godan => "v5",
-            Identifier::Other => "",
+    fn to_identifier(s: &str) -> &str {
+        match s {
+            "v1" | "v1-s" => "v1",
+            "v5aru" | "v5b" | "v5g" | "v5k" | "v5k-s" | "v5m" | "v5n" | "v5r" | "v5r-i" | "v5s"
+            | "v5t" | "v5u" | "v5u-s" | "v5uru" => "v5",
+            _ => "",
         }
     }
 }
@@ -87,9 +95,6 @@ pub struct Definition {
 }
 
 impl Definition {
-    fn serialize(&self) -> String {
-        "".to_string()
-    }
     pub fn add_term(&mut self, term: String) -> &mut Self {
         self.term.push(term);
         self
@@ -141,12 +146,43 @@ impl Definition {
         }
         self
     }
+    fn pos_to_identifier(&self) -> String {
+        let mut ret = String::new();
+        if self.pos.is_empty() {
+            ret = "".to_string();
+        }
+        for i in &self.pos[0] {
+            match i.as_str() {
+                "v1" | "v1-s" => {
+                    ret = "v1".to_string();
+                }
+                "v5aru" | "v5b" | "v5g" | "v5k" | "v5k-s" | "v5m" | "v5n" | "v5r" | "v5r-i"
+                | "v5s" | "v5t" | "v5u" | "v5u-s" | "v5uru" => {
+                    ret = "v5".to_string();
+                }
+                _ => {
+                    ret = "".to_string();
+                }
+            }
+        }
+        ret
+    }
+    fn serialize_gloss(&self, index: usize) -> String {
+        let mut ret = String::new();
+        write!(ret, "{}", self.reading.join("・")).unwrap();
+        write!(ret, "【{}】", self.term.join("・")).unwrap();
+        write!(ret, "\\n〘{}〙", self.pos[index].join("・")).unwrap();
+        write!(ret, "\\n{}", self.gloss[index].join("; ")).unwrap();
+        write!(ret, ".").unwrap();
+        ret
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::word_frequency::parser::parse_frequency_input;
+    use crate::word_frequency::stats::*;
 
     #[test]
     fn get_popularity_sample() {
@@ -165,7 +201,25 @@ mod tests {
 
     #[test]
     fn serialize_single_term() {
-        let term = Term {term: "明白".to_string(), reading: "めいはく".to_string(), identifiers: Identifier::Other, popularity: 708f32, definitions: r#"めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."#.to_string(), sequence_number: 26u32};
+        let mut definitions = Definition::default();
+        definitions.add_term("明白".to_string());
+        definitions.add_reading("めいはく".to_string());
+        definitions.add_pos("adj-na".to_string(), 1);
+        definitions.add_misc("uk".to_string(), 1);
+        definitions.add_gloss("obvious".to_string(), 1);
+        definitions.add_gloss("clear".to_string(), 1);
+        definitions.add_gloss("plain".to_string(), 1);
+        definitions.add_gloss("evident".to_string(), 1);
+        definitions.add_gloss("apparent".to_string(), 1);
+        definitions.add_gloss("explicit".to_string(), 1);
+        definitions.add_gloss("overt".to_string(), 1);
+        println!("{:?}", definitions);
+
+        let term = Term {
+            definitions,
+            popularity: 708f32,
+            sequence_number: 26u32,
+        };
         let serialized = r#"["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""]"#.to_string();
         assert_eq!(term.serialize(), serialized);
     }
