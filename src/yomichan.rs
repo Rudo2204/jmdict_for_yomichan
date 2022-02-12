@@ -170,9 +170,7 @@ impl Definition {
                 | "v5s" | "v5t" | "v5u" | "v5u-s" | "v5uru" => {
                     ret = "v5".to_string();
                 }
-                _ => {
-                    ret = "".to_string();
-                }
+                _ => (),
             }
         }
         ret
