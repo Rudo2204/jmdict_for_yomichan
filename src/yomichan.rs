@@ -1,6 +1,9 @@
 use std::fmt::Write;
 
-const MAX_TERM_PER_BANK: u32 = 10000;
+use crate::word_frequency::parser::WordFrequency;
+use crate::word_frequency::stats::get_popularity;
+
+const MAX_TERM_PER_BANK: u16 = 10000;
 
 pub struct DictIndex {
     title: String,
@@ -38,15 +41,14 @@ impl DictIndex {
 
 struct Term {
     definitions: Definition,
-    popularity: f32,
     sequence_number: u32,
 }
 
 impl Term {
-    fn serialize(&self) -> String {
+    fn serialize(&self, term_num: u16, vec_word_freq: &Vec<WordFrequency>) -> String {
         //["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],
-        let len = self.definitions.term.len();
-        let mut ret = if self.sequence_number == 0 {
+        let len = self.definitions.term.len() - 1;
+        let mut ret = if term_num == 1 {
             "[".to_string()
         } else {
             String::new()
@@ -58,12 +60,12 @@ impl Term {
                 self.definitions.term[i],
                 self.definitions.reading[i],
                 self.definitions.pos_to_identifier(),
-                self.popularity,
+                get_popularity(self.sequence_number, vec_word_freq),
                 self.definitions.serialize_gloss(i),
-                self.sequence_number
+                term_num,
             )
             .expect("Could not write to buffer string to serialize definitions");
-            if self.sequence_number < MAX_TERM_PER_BANK {
+            if term_num < MAX_TERM_PER_BANK {
                 ret = format!("{},\n", ret);
             } else {
                 write!(ret, "]")

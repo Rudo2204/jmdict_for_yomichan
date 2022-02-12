@@ -146,24 +146,22 @@ fn main() -> Result<()> {
     }
 
     debug!("-----Logger is initialized. Starting main program!-----");
-    let input_path = matches.value_of("input").unwrap();
-    let jmdict_xml = std::fs::read_to_string(input_path)?;
-    let _ = jmdict_xml::process_jmdict(&jmdict_xml);
-    //let raw_freq_input = std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
-    let raw_freq_input = std::fs::read_to_string("tests/frequency-sample.txt")?;
+    let raw_freq_input = std::fs::read_to_string("japanese-word-frequency/frequency.txt")?;
     let (_, vec_word_freq) =
         word_frequency::parser::parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
-    let (mean, std_deviation) = word_frequency::stats::get_freq_stats(&vec_word_freq);
-    info!("mean = {}, std_deviation = {}", mean, std_deviation);
 
-    let mut index_file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open("index.json")?;
+    let input_path = matches.value_of("input").unwrap();
+    let jmdict_xml = std::fs::read_to_string(input_path)?;
+    let _ = jmdict_xml::process_jmdict(&jmdict_xml, &vec_word_freq);
 
-    write!(index_file, "{}", DictIndex::default_serialize())?;
-    info!("Successfully wrote `index.json` file!");
+    //let mut index_file = OpenOptions::new()
+    //    .create(true)
+    //    .write(true)
+    //    .truncate(true)
+    //    .open("index.json")?;
+
+    //write!(index_file, "{}", DictIndex::default_serialize())?;
+    //info!("Successfully wrote `index.json` file!");
 
     debug!("-----Everything is finished!-----");
     if lock {

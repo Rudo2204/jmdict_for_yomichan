@@ -11,10 +11,10 @@ use std::str;
 
 const MAX_TERM: u16 = 10000;
 
+use crate::word_frequency::parser::WordFrequency;
 use crate::yomichan::Definition;
-//use crate::word_frequency::stats::get_popularity;
 
-pub fn process_jmdict(xml: &str) -> Result<()> {
+pub fn process_jmdict(xml: &str, vec_word_freq: &Vec<WordFrequency>) -> Result<()> {
     let mut reader = Reader::from_str(xml);
     reader.trim_text(true);
 
