@@ -1,5 +1,7 @@
 use std::fmt::Write;
 
+const MAX_TERM_PER_BANK: u32 = 10000;
+
 pub struct DictIndex {
     title: String,
     format: u8,
@@ -44,7 +46,11 @@ impl Term {
     fn serialize(&self) -> String {
         //["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],
         let len = self.definitions.term.len();
-        let mut ret = String::new();
+        let mut ret = if self.sequence_number == 0 {
+            "[".to_string()
+        } else {
+            String::new()
+        };
         for i in 0..len {
             write!(
                 ret,
@@ -57,10 +63,12 @@ impl Term {
                 self.sequence_number
             )
             .expect("Could not write to buffer string to serialize definitions");
-            //if i < len {
-            //    writeln!(ret, ",\n")
-            //        .expect("Could not write to buffer string to serialize definitions");
-            //}
+            if self.sequence_number < MAX_TERM_PER_BANK {
+                ret = format!("{},\n", ret);
+            } else {
+                write!(ret, "]")
+                    .expect("Could not write to buffer string to serialize definitions");
+            }
         }
         ret
     }
@@ -220,7 +228,8 @@ mod tests {
             popularity: 708f32,
             sequence_number: 26u32,
         };
-        let serialized = r#"["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""]"#.to_string();
+        let serialized = r#"["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],"#.to_string();
+        let serialized = format!("{}\n", serialized);
         assert_eq!(term.serialize(), serialized);
     }
 
