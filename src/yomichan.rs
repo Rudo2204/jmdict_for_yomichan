@@ -192,7 +192,12 @@ mod tests {
     use crate::word_frequency::parser::parse_frequency_input;
 
     #[test]
+    #[ignore]
     fn serialize_single_term() {
+        let raw_freq_input =
+            std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
+        let (_, vec_word_freq) = parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
+
         let mut definitions = Definition::default();
         definitions.add_term("明白".to_string());
         definitions.add_reading("めいはく".to_string());
@@ -205,16 +210,53 @@ mod tests {
         definitions.add_gloss("apparent".to_string(), 1);
         definitions.add_gloss("explicit".to_string(), 1);
         definitions.add_gloss("overt".to_string(), 1);
-        println!("{:?}", definitions);
 
         let term = Term {
             definitions,
-            popularity: 708f32,
-            sequence_number: 26u32,
+            sequence_number: 1000220u32,
         };
-        let serialized = r#"["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],"#.to_string();
+        let serialized = r#"["明白","めいはく","","",98,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],"#.to_string();
         let serialized = format!("{}\n", serialized);
-        assert_eq!(term.serialize(), serialized);
+        assert_eq!(term.serialize(26, &vec_word_freq), serialized);
+    }
+
+    #[test]
+    #[ignore]
+    fn serialize_multiple_term_uk() {
+        let raw_freq_input =
+            std::fs::read_to_string("japanese-word-frequency/frequency.txt").unwrap();
+        let (_, vec_word_freq) = parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
+
+        let mut definitions = Definition::default();
+        definitions.set_uk();
+        definitions.add_term("遇う".to_string());
+        definitions.add_term("配う".to_string());
+        definitions.add_reading("あしらう".to_string());
+        definitions.add_pos("v5u".to_string(), 1);
+        definitions.add_pos("vt".to_string(), 1);
+        definitions.add_misc("uk".to_string(), 1);
+        definitions.add_gloss("to treat".to_string(), 1);
+        definitions.add_gloss("to handle".to_string(), 1);
+        definitions.add_gloss("to deal with".to_string(), 1);
+        definitions.add_pos("v5u".to_string(), 2);
+        definitions.add_pos("vt".to_string(), 2);
+        definitions.add_misc("uk".to_string(), 2);
+        definitions.add_gloss("to arrange".to_string(), 2);
+        definitions.add_gloss("to decorate".to_string(), 2);
+        definitions.add_gloss("to dress".to_string(), 2);
+        definitions.add_gloss("to garnish".to_string(), 2);
+
+        let term = Term {
+            definitions,
+            sequence_number: 1000300u32,
+        };
+        let serialized_1 = r#"["遇う","あしらう","","v5",52,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],35,""],"#.to_string();
+        let serialized = format!("{}\n", serialized_1);
+        let serialized_2 = r#"["配う","あしらう","","v5",51,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],36,""],"#.to_string();
+        let serialized = format!("{}\n{}\n", serialized, serialized_2);
+        let serialized_3 = r#"["あしらう","あしらう","","v5",53,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],37,""],"#.to_string();
+        let serialized = format!("{}\n{}\n", serialized, serialized_3);
+        assert_eq!(term.serialize(35, &vec_word_freq), serialized);
     }
 
     #[test]
