@@ -190,22 +190,6 @@ impl Definition {
 mod tests {
     use super::*;
     use crate::word_frequency::parser::parse_frequency_input;
-    use crate::word_frequency::stats::*;
-
-    #[test]
-    fn get_popularity_sample() {
-        let raw_freq_sample = std::fs::read_to_string("tests/frequency-sample.txt").unwrap();
-        let (_, vec_word_freq) = parse_frequency_input(raw_freq_sample.as_bytes()).unwrap();
-        assert_eq!(
-            get_popularity(&vec_word_freq, 1000310u32).unwrap(),
-            36.9_f32
-        );
-        assert_eq!(
-            get_popularity(&vec_word_freq, 1000225u32).unwrap(),
-            36.9_f32
-        );
-        assert_eq!(get_popularity(&vec_word_freq, 1000300u32).unwrap(), 52_f32);
-    }
 
     #[test]
     fn serialize_single_term() {
