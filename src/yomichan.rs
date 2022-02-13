@@ -46,7 +46,6 @@ struct Term {
 
 impl Term {
     fn serialize(&self, term_num: u16, vec_word_freq: &Vec<WordFrequency>) -> String {
-        //["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],
         let len = self.definitions.term.len() - 1;
         let mut ret = if term_num == 1 {
             "[".to_string()
@@ -61,7 +60,7 @@ impl Term {
                 self.definitions.reading[i],
                 self.definitions.pos_to_identifier(),
                 get_popularity(self.sequence_number, vec_word_freq),
-                self.definitions.serialize_gloss(i),
+                self.definitions.serialize_gloss(),
                 term_num,
             )
             .expect("Could not write to buffer string to serialize definitions");
@@ -175,13 +174,30 @@ impl Definition {
         }
         ret
     }
-    fn serialize_gloss(&self, index: usize) -> String {
+
+    //["明白","めいはく","","",708,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],
+    fn serialize_gloss(&self) -> String {
         let mut ret = String::new();
         write!(ret, "{}", self.reading.join("・")).unwrap();
         write!(ret, "【{}】", self.term.join("・")).unwrap();
-        write!(ret, "\\n〘{}〙", self.pos[index].join("・")).unwrap();
-        write!(ret, "\\n{}", self.gloss[index].join("; ")).unwrap();
-        write!(ret, ".").unwrap();
+        if self.pos.len() >= 1 {
+            write!(ret, "\\n〘{}〙", self.pos[0].join("・")).unwrap();
+        }
+        if self.pos.len() == 1 {
+            write!(ret, "\\n〘{}〙", self.misc[0].join("・")).unwrap();
+            write!(ret, "\\n{}.", self.gloss[0].join("; ")).unwrap();
+        } else {
+            for (i, _val) in self.pos.iter().enumerate() {
+                write!(
+                    ret,
+                    "\\n{} 〘{}〙 {}.",
+                    i + 1,
+                    self.misc[i].join("・"),
+                    self.gloss[i].join("; ")
+                )
+                .unwrap();
+            }
+        }
         ret
     }
 }
@@ -252,10 +268,10 @@ mod tests {
         };
         let serialized_1 = r#"["遇う","あしらう","","v5",52,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],35,""],"#.to_string();
         let serialized = format!("{}\n", serialized_1);
-        let serialized_2 = r#"["配う","あしらう","","v5",51,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],36,""],"#.to_string();
-        let serialized = format!("{}\n{}\n", serialized, serialized_2);
-        let serialized_3 = r#"["あしらう","あしらう","","v5",53,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],37,""],"#.to_string();
-        let serialized = format!("{}\n{}\n", serialized, serialized_3);
+        //let serialized_2 = r#"["配う","あしらう","","v5",51,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],36,""],"#.to_string();
+        //let serialized = format!("{}\n{}\n", serialized, serialized_2);
+        //let serialized_3 = r#"["あしらう","あしらう","","v5",53,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],37,""],"#.to_string();
+        //let serialized = format!("{}\n{}\n", serialized, serialized_3);
         assert_eq!(term.serialize(35, &vec_word_freq), serialized);
     }
 
