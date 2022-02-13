@@ -218,7 +218,6 @@ mod tests {
         definitions.add_term("明白".to_string());
         definitions.add_reading("めいはく".to_string());
         definitions.add_pos("adj-na".to_string(), 1);
-        definitions.add_misc("uk".to_string(), 1);
         definitions.add_gloss("obvious".to_string(), 1);
         definitions.add_gloss("clear".to_string(), 1);
         definitions.add_gloss("plain".to_string(), 1);
