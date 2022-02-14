@@ -65,6 +65,7 @@ pub struct Definition {
     uk: bool,
     gloss: Vec<Vec<String>>,
     misc: Vec<Vec<String>>,
+    sequence_number: u32,
 }
 
 impl Definition {
@@ -106,6 +107,10 @@ impl Definition {
         self.uk = true;
         self
     }
+    pub fn sequence_number(&mut self, sequence_number: u32) -> &mut Self {
+        self.sequence_number = sequence_number;
+        self
+    }
     pub fn add_gloss(&mut self, gloss: String, sense: usize) -> &mut Self {
         if self.gloss.is_empty() {
             self.gloss = vec![vec![gloss]];
@@ -139,54 +144,120 @@ impl Definition {
         ret
     }
 
-    pub fn serialize(
-        &self,
-        sequence_number: u32,
-        term_num: u16,
-        vec_word_freq: &Vec<WordFrequency>,
-    ) -> String {
-        let len = self.term.len();
+    pub fn serialize(&self, term_num: u16, vec_word_freq: &Vec<WordFrequency>) -> String {
+        let mut plus_count: u16 = 0;
+        let mut use_reading = false;
+        let no_kanji_term = false;
+        if self.reading.len() > self.term.len() {
+            use_reading = true;
+        }
+        let len = if use_reading {
+            self.reading.len()
+        } else {
+            self.term.len()
+        };
         let mut ret = if term_num == 1 {
             "[".to_string()
         } else {
             String::new()
         };
-        for i in 0..len {
-            write!(
-                ret,
-                r#"["{}","{}","","{}",{},["{}"],{},""]"#,
-                self.term[i],
-                self.reading[0],
-                self.pos_to_identifier(),
-                get_popularity(sequence_number, vec_word_freq) - i as f32,
-                self.serialize_gloss(),
-                term_num + i as u16,
-            )
-            .expect("Could not write to buffer string to serialize definitions");
-            if term_num < MAX_TERM_PER_BANK {
-                ret = format!("{},\n", ret);
-            } else {
-                write!(ret, "]")
+
+        if no_kanji_term {
+            for i in 0..len {
+                write!(
+                    ret,
+                    r#"["{}","{}","","{}",{},["{}"],{},""]"#,
+                    self.term[i],
+                    self.reading[0],
+                    self.pos_to_identifier(),
+                    get_popularity(self.sequence_number, vec_word_freq) - i as f32,
+                    self.serialize_gloss(),
+                    term_num + plus_count,
+                )
+                .expect("Could not write to buffer string to serialize definitions");
+                if term_num < MAX_TERM_PER_BANK {
+                    ret = format!("{},\n", ret);
+                } else {
+                    write!(ret, "]")
+                        .expect("Could not write to buffer string to serialize definitions");
+                }
+
+                plus_count += 1;
+            }
+        } else if use_reading {
+            let len_term = self.term.len();
+            for i in 0..len {
+                for j in 0..len_term {
+                    write!(
+                        ret,
+                        r#"["{}","{}","","{}",{},["{}"],{},""]"#,
+                        self.term[j],
+                        self.reading[i],
+                        self.pos_to_identifier(),
+                        get_popularity(self.sequence_number, vec_word_freq) - i as f32,
+                        self.serialize_gloss(),
+                        term_num + plus_count,
+                    )
                     .expect("Could not write to buffer string to serialize definitions");
+                    if term_num < MAX_TERM_PER_BANK {
+                        ret = format!("{},\n", ret);
+                    } else {
+                        write!(ret, "]")
+                            .expect("Could not write to buffer string to serialize definitions");
+                    }
+
+                    plus_count += 1;
+                }
+            }
+        } else {
+            let len_reading = self.reading.len();
+            for i in 0..len {
+                for j in 0..len_reading {
+                    write!(
+                        ret,
+                        r#"["{}","{}","","{}",{},["{}"],{},""]"#,
+                        self.term[i],
+                        self.reading[j],
+                        self.pos_to_identifier(),
+                        get_popularity(self.sequence_number, vec_word_freq) - i as f32,
+                        self.serialize_gloss(),
+                        term_num + plus_count,
+                    )
+                    .expect("Could not write to buffer string to serialize definitions");
+                    if term_num < MAX_TERM_PER_BANK {
+                        ret = format!("{},\n", ret);
+                    } else {
+                        write!(ret, "]")
+                            .expect("Could not write to buffer string to serialize definitions");
+                    }
+
+                    plus_count += 1;
+                }
             }
         }
+
+        // if uk then the len of term and reading is definitely > 0 so we don't have to check for it
         if self.uk {
-            write!(
-                ret,
-                r#"["{}","{}","","{}",{},["{}"],{},""]"#,
-                self.reading[0],
-                self.reading[0],
-                self.pos_to_identifier(),
-                get_popularity(sequence_number, vec_word_freq) + 1f32,
-                self.serialize_gloss(),
-                term_num + len as u16,
-            )
-            .expect("Could not write to buffer string to serialize definitions");
-            if term_num < MAX_TERM_PER_BANK {
-                ret = format!("{},\n", ret);
-            } else {
-                write!(ret, "]")
-                    .expect("Could not write to buffer string to serialize definitions");
+            let len_reading = self.reading.len();
+            for i in 0..len_reading {
+                write!(
+                    ret,
+                    r#"["{}","","","{}",{},["{}"],{},""]"#,
+                    self.reading[i],
+                    self.pos_to_identifier(),
+                    get_popularity(self.sequence_number, vec_word_freq) + 1f32,
+                    self.serialize_gloss(),
+                    term_num + plus_count,
+                )
+                .expect("Could not write to buffer string to serialize definitions");
+                if term_num < MAX_TERM_PER_BANK {
+                    ret = format!("{},\n", ret);
+                } else {
+                    write!(ret, "]")
+                        .expect("Could not write to buffer string to serialize definitions");
+                }
+
+                plus_count += 1;
             }
         }
         ret
@@ -234,6 +305,7 @@ mod tests {
         let (_, vec_word_freq) = parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
 
         let mut definitions = Definition::default();
+        definitions.sequence_number(1000220u32);
         definitions.add_term("明白".to_string());
         definitions.add_reading("めいはく".to_string());
         definitions.add_pos("adj-na".to_string(), 1);
@@ -247,10 +319,7 @@ mod tests {
 
         let serialized = r#"["明白","めいはく","","",98,["めいはく【明白】\n〘adj-na〙\nobvious; clear; plain; evident; apparent; explicit; overt."],26,""],"#.to_string();
         let serialized = format!("{}\n", serialized);
-        assert_eq!(
-            definitions.serialize(1000220u32, 26, &vec_word_freq),
-            serialized
-        );
+        assert_eq!(definitions.serialize(26, &vec_word_freq), serialized);
     }
 
     #[test]
@@ -261,6 +330,7 @@ mod tests {
         let (_, vec_word_freq) = parse_frequency_input(&raw_freq_input.as_bytes()).unwrap();
 
         let mut definitions = Definition::default();
+        definitions.sequence_number(1000300u32);
         definitions.set_uk();
         definitions.add_term("遇う".to_string());
         definitions.add_term("配う".to_string());
@@ -283,12 +353,9 @@ mod tests {
         let serialized = format!("{}", serialized_1);
         let serialized_2 = r#"["配う","あしらう","","v5",51,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],36,""],"#.to_string();
         let serialized = format!("{}\n{}", serialized, serialized_2);
-        let serialized_3 = r#"["あしらう","あしらう","","v5",53,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],37,""],"#.to_string();
+        let serialized_3 = r#"["あしらう","","","v5",53,["あしらう【遇う・配う】\n〘v5u・vt〙\n1 〘uk〙 to treat; to handle; to deal with.\n2 〘uk〙 to arrange; to decorate; to dress; to garnish."],37,""],"#.to_string();
         let serialized = format!("{}\n{}\n", serialized, serialized_3);
-        assert_eq!(
-            definitions.serialize(1000300u32, 35, &vec_word_freq),
-            serialized
-        );
+        assert_eq!(definitions.serialize(35, &vec_word_freq), serialized);
     }
 
     #[test]
