@@ -9,10 +9,9 @@ use std::fs::OpenOptions;
 use std::io::{BufRead, Write};
 use std::str;
 
-const MAX_TERM: u16 = 10000;
-
 use crate::word_frequency::parser::WordFrequency;
 use crate::yomichan::Definition;
+use crate::yomichan::MAX_TERM_PER_BANK;
 
 pub fn process_jmdict(xml: &str, vec_word_freq: &Vec<WordFrequency>) -> Result<()> {
     let mut reader = Reader::from_str(xml);
@@ -26,11 +25,11 @@ pub fn process_jmdict(xml: &str, vec_word_freq: &Vec<WordFrequency>) -> Result<(
     let mut custom_entities = HashMap::new();
 
     let mut current_term_bank_count: u8 = 1;
-    //let mut current_term_file = OpenOptions::new()
-    //    .create(true)
-    //    .write(true)
-    //    .truncate(true)
-    //    .open(format!("term_bank_{}.json", current_term_bank_count))?;
+    let mut current_term_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(format!("term_bank_{}.json", current_term_bank_count))?;
 
     loop {
         match reader.read_event(&mut buf) {
@@ -38,7 +37,7 @@ pub fn process_jmdict(xml: &str, vec_word_freq: &Vec<WordFrequency>) -> Result<(
                 b"entry" => {
                     current_term_count += 1;
 
-                    if current_term_count == MAX_TERM {
+                    if current_term_count == MAX_TERM_PER_BANK {
                         //current_term_file.flush()?;
                         //current_term_file = OpenOptions::new()
                         //    .create(true)
@@ -51,6 +50,12 @@ pub fn process_jmdict(xml: &str, vec_word_freq: &Vec<WordFrequency>) -> Result<(
 
                     let definition = parse_entry(&mut reader, &mut buf, &custom_entities)?;
                     debug!("{:#?}", definition);
+                    write!(
+                        current_term_file,
+                        "{}",
+                        definition.serialize(current_term_count, vec_word_freq)
+                    )
+                    .unwrap();
                 }
                 _ => (),
             },
@@ -93,6 +98,13 @@ fn parse_entry<R: BufRead>(
                 let value =
                     text.unescape_and_decode_with_custom_entities(&reader, &custom_entities)?;
                 match current_tag {
+                    Tag::EntSeq => {
+                        definition.sequence_number(
+                            value
+                                .parse::<u32>()
+                                .expect("could not parse sequence_number to u32"),
+                        );
+                    }
                     Tag::Keb => {
                         definition.add_term(value);
                     }
@@ -137,7 +149,7 @@ fn parse_entry<R: BufRead>(
 
 #[derive(PartialEq)]
 enum Tag {
-    //EntSeq,
+    EntSeq,
     Keb,
     Reb,
     Pos,
@@ -150,7 +162,7 @@ enum Tag {
 impl Tag {
     fn from_str(s: &str) -> Self {
         match s {
-            //"ent_seq" => Tag::EntSeq,
+            "ent_seq" => Tag::EntSeq,
             "keb" => Tag::Keb,
             "reb" => Tag::Reb,
             "pos" => Tag::Pos,
