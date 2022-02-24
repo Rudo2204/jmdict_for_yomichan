@@ -66,6 +66,7 @@ pub struct Definition {
     gloss: Vec<Vec<String>>,
     misc: Vec<Vec<String>>,
     sequence_number: u32,
+    number_of_sense: u16,
 }
 
 impl Definition {
@@ -142,6 +143,11 @@ impl Definition {
             }
         }
         ret
+    }
+
+    pub fn increase_sense(&mut self) -> &mut Self {
+        self.number_of_sense += 1;
+        self
     }
 
     pub fn serialize(&self, term_num: u16, vec_word_freq: &Vec<WordFrequency>) -> String {
@@ -268,7 +274,7 @@ impl Definition {
         let mut ret = String::new();
         write!(ret, "{}", self.reading.join("・")).unwrap();
         write!(ret, "【{}】", self.term.join("・")).unwrap();
-        if self.pos.len() >= 1 {
+        if self.number_of_sense > 0 {
             write!(ret, "\\n〘{}〙", self.pos[0].join("・")).unwrap();
         }
         if self.pos.len() == 1 {

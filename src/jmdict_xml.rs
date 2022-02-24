@@ -139,6 +139,8 @@ fn parse_entry<R: BufRead>(
             Event::End(end) => {
                 if end.name() == b"entry" {
                     break;
+                } else if end.name() == b"sense" {
+                    definition.increase_sense();
                 }
             }
             _ => (),
@@ -149,6 +151,7 @@ fn parse_entry<R: BufRead>(
 
 #[derive(PartialEq)]
 enum Tag {
+    // TODO: Add x_inf (see あそこ)
     EntSeq,
     Keb,
     Reb,
